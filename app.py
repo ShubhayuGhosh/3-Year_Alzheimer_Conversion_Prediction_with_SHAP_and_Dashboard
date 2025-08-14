@@ -84,15 +84,13 @@ with tab1:
     top_feats = get_top_features(shap_values, trained_feature_names)
 
     # Risk distribution histogram
-    st.subheader("📈 Risk Score Distribution")
-    with st.expander("ℹ️ What is this?"):
-        st.write(
-            "This histogram shows how the model’s predicted risk scores are distributed "
-            "across all patients. A higher risk score means a higher predicted likelihood of dementia conversion."
-        )
-    fig_hist = px.histogram(X, x="RiskScore", nbins=20, title="Risk Score Histogram")
-    fig_hist.update_layout(xaxis_title="Predicted Risk", yaxis_title="Count")
-    st.plotly_chart(fig_hist, use_container_width=True)
+st.subheader("📈 Risk Score Distribution")
+with st.expander("ℹ️ What is this?"):
+    st.write(
+        "This histogram shows how the model’s predicted risk scores are distributed "
+        "across all patients."
+    )
+st.image("histogram.png", use_column_width=True)
 
     if st.checkbox("Show SHAP Beeswarm (Top Features)", value=False):
         with st.expander("ℹ️ What is this?"):
@@ -113,54 +111,21 @@ with tab1:
         fig_beeswarm.update_traces(marker=dict(size=5, opacity=0.7))
         st.plotly_chart(fig_beeswarm, use_container_width=True)
 
-  if st.checkbox("Show Partial Dependence Plots", value=False):
+if st.checkbox("Show Partial Dependence Plots", value=False):
     with st.expander("ℹ️ What is this?"):
         st.write(
             "Partial dependence plots (PDPs) show how changing a single feature while "
-            "keeping others constant affects the predicted risk. They help interpret non-linear effects."
+            "keeping others constant affects the predicted risk."
         )
-    
-    # Create figure with black background
-    fig, axs = plt.subplots(1, 5, figsize=(20, 4))
+    st.image("pdp.png", use_column_width=True)
 
-    # Set the background of the figure and axes to black
-    fig.patch.set_facecolor('black')
-    
-    # Loop over the axes and plot each PDP
-    for i, feat in enumerate(top_feats[:5]):
-        shap.dependence_plot(
-            feat, shap_values, X_features, interaction_index=None, ax=axs[i], show=False
+
+if st.checkbox("Show SHAP Interaction Heatmap", value=False):
+    with st.expander("ℹ️ What is this?"):
+        st.write(
+            "This heatmap shows the average magnitude of interaction effects between pairs of features."
         )
-        
-        # Set the background of each subplot to black
-        axs[i].set_facecolor('black')
-
-        # Customize text colors (titles, labels, ticks)
-        axs[i].set_title(feat, color='white')  # Title in white
-        axs[i].tick_params(axis='both', colors='white')  # Ticks in white
-        axs[i].set_xlabel(feat, color='white')  # X-axis label in white
-        axs[i].set_ylabel("Predicted Risk", color='white')  # Y-axis label in white
-    
-    # Adjust spacing and show the plot
-    plt.tight_layout()
-    st.pyplot(fig)
-
-    if st.checkbox("Show SHAP Interaction Heatmap", value=False):
-        with st.expander("ℹ️ What is this?"):
-            st.write(
-                "This heatmap shows the average magnitude of interaction effects between pairs of features. "
-                "Brighter colors mean stronger interactions, meaning those two features together have a "
-                "larger effect on predictions than individually."
-            )
-        mean_interaction = get_shap_interaction_mean(explainer, X_features)
-        fig_heatmap = px.imshow(
-            mean_interaction,
-            x=trained_feature_names,
-            y=trained_feature_names,
-            color_continuous_scale="teal",
-            title="Mean Absolute SHAP Interaction Values"
-        )
-        st.plotly_chart(fig_heatmap, use_container_width=True)
+    st.image("heatmap.png", use_column_width=True)
 
 
 # =========================
@@ -201,6 +166,7 @@ with tab2:
     similar_indices = np.argsort(distances)[1:num_similar + 1]
     similar_table = X.iloc[similar_indices][["Pseudonym", "RiskScore"]]
     st.dataframe(similar_table, use_container_width=True)
+
 
 
 
