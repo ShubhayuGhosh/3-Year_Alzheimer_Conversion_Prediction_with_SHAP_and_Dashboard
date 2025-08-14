@@ -14,10 +14,28 @@ import random
 # -------------------------
 # Load model & data
 # -------------------------
-model = pickle.load(open("model.pkl", "rb"))
-explainer = pickle.load(open("shap_explainer.pkl", "rb"))
-X = pd.read_pickle("baseline_df.pkl")  # Keep dtypes
-shap_values = np.load("shap_values.npy")
+@st.cache_resource
+def load_model():
+    return pickle.load(open("model.pkl", "rb"))
+
+@st.cache_resource
+def load_explainer():
+    return pickle.load(open("shap_explainer.pkl", "rb"))
+
+@st.cache_data
+def load_data():
+    return pd.read_pickle("baseline_df.pkl")
+
+@st.cache_data
+def load_shap_values():
+    return np.load("shap_values.npy")
+
+# Load once, cached
+model = load_model()
+explainer = load_explainer()
+X = load_data()
+shap_values = load_shap_values()
+
 
 # Ensure pseudonyms exist
 if "Pseudonym" not in X.columns:
@@ -130,3 +148,4 @@ with tab2:
     similar_indices = np.argsort(distances)[1:num_similar + 1]
     similar_table = X.iloc[similar_indices][["Pseudonym", "RiskScore"]]
     st.dataframe(similar_table, use_container_width=True)
+
