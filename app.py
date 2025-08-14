@@ -82,7 +82,7 @@ with tab1:
         y="Feature",
         color="Feature Value",
         title="SHAP Beeswarm (Top 20 Features)",
-        color_continuous_scale="RdBu",
+        color_continuous_scale="plasma",
         render_mode="webgl"
     )
     fig_beeswarm.update_traces(marker=dict(size=5, opacity=0.7))
@@ -105,7 +105,7 @@ with tab1:
         mean_interaction,
         x=trained_feature_names,
         y=trained_feature_names,
-        color_continuous_scale="RdBu",
+        color_continuous_scale="plasma",
         title="Mean Absolute SHAP Interaction Values"
     )
     st.plotly_chart(fig_heatmap, use_container_width=True)
@@ -148,4 +148,5 @@ with tab2:
     similar_indices = np.argsort(distances)[1:num_similar + 1]
     similar_table = X.iloc[similar_indices][["Pseudonym", "RiskScore"]]
     st.dataframe(similar_table, use_container_width=True)
+
 
