@@ -36,6 +36,27 @@ explainer = load_explainer()
 X = load_data()
 shap_values = load_shap_values()
 
+@st.cache_data
+def get_top_features(shap_values, feature_names, top_n=20):
+    shap_df = pd.DataFrame(shap_values, columns=feature_names)
+    shap_mean = np.abs(shap_df).mean().sort_values(ascending=False)
+    return shap_mean.index[:top_n]
+
+@st.cache_data
+def get_beeswarm_data(shap_values, X, top_feats, sample_size=1000):
+    # Sample for speed
+    if len(X) > sample_size:
+        X = X.sample(sample_size, random_state=42)
+        shap_values = shap_values[np.random.choice(len(shap_values), sample_size, replace=False)]
+    shap_df = pd.DataFrame(shap_values, columns=top_feats)
+    beeswarm_melted = shap_df.melt(var_name="Feature", value_name="SHAP Value")
+    beeswarm_melted["Feature Value"] = X[top_feats].melt()["value"]
+    return beeswarm_melted
+
+@st.cache_data
+def get_shap_interaction_mean(explainer, X_features):
+    shap_interaction_values = explainer.shap_interaction_values(X_features)
+    return np.abs(shap_interaction_values).mean(axis=0)
 
 # Ensure pseudonyms exist
 if "Pseudonym" not in X.columns:
@@ -60,55 +81,68 @@ tab1, tab2 = st.tabs(["📊 Model Insights", "🧍 Patient Explorer"])
 with tab1:
     st.title("📊 Model Insights")
 
+    top_feats = get_top_features(shap_values, trained_feature_names)
+
     # Risk distribution histogram
     st.subheader("📈 Risk Score Distribution")
+    with st.expander("ℹ️ What is this?"):
+        st.write(
+            "This histogram shows how the model’s predicted risk scores are distributed "
+            "across all patients. A higher risk score means a higher predicted likelihood of dementia conversion."
+        )
     fig_hist = px.histogram(X, x="RiskScore", nbins=20, title="Risk Score Histogram")
     fig_hist.update_layout(xaxis_title="Predicted Risk", yaxis_title="Count")
     st.plotly_chart(fig_hist, use_container_width=True)
 
-    # Interactive SHAP Beeswarm (Top 20 Features)
-    st.subheader("🐝 SHAP Beeswarm (Top Features)")
-    shap_df = pd.DataFrame(shap_values, columns=trained_feature_names)
-    shap_mean = np.abs(shap_df).mean().sort_values(ascending=False)
-    top_feats = shap_mean.index[:20]
-
-    beeswarm_data = shap_df[top_feats]
-    beeswarm_melted = beeswarm_data.melt(var_name="Feature", value_name="SHAP Value")
-    beeswarm_melted["Feature Value"] = X[top_feats].melt()["value"]
-
-    fig_beeswarm = px.scatter(
-        beeswarm_melted,
-        x="SHAP Value",
-        y="Feature",
-        color="Feature Value",
-        title="SHAP Beeswarm (Top 20 Features)",
-        color_continuous_scale="teal",
-        render_mode="webgl"
-    )
-    fig_beeswarm.update_traces(marker=dict(size=5, opacity=0.7))
-    st.plotly_chart(fig_beeswarm, use_container_width=True)
-
-    # PDPs for top 5 features
-    st.subheader("📈 Partial Dependence Plots (Top 5 Features)")
-    fig, axs = plt.subplots(1, 5, figsize=(20, 4))
-    for i, feat in enumerate(top_feats[:5]):
-        shap.dependence_plot(
-            feat, shap_values, X_features, interaction_index=None, ax=axs[i], show=False
+    if st.checkbox("Show SHAP Beeswarm (Top Features)", value=False):
+        with st.expander("ℹ️ What is this?"):
+            st.write(
+                "A SHAP beeswarm plot shows how each feature impacts the model's predictions "
+                "across all patients. Each dot is a patient; color represents the feature's actual value."
+            )
+        beeswarm_data = get_beeswarm_data(shap_values, X, top_feats)
+        fig_beeswarm = px.scatter(
+            beeswarm_data,
+            x="SHAP Value",
+            y="Feature",
+            color="Feature Value",
+            title="SHAP Beeswarm (Sampled)",
+            color_continuous_scale="teal",
+            render_mode="webgl"
         )
-    st.pyplot(fig)
+        fig_beeswarm.update_traces(marker=dict(size=5, opacity=0.7))
+        st.plotly_chart(fig_beeswarm, use_container_width=True)
 
-    # SHAP interaction heatmap
-    st.subheader("🔥 SHAP Interaction Heatmap")
-    shap_interaction_values = explainer.shap_interaction_values(X_features)
-    mean_interaction = np.abs(shap_interaction_values).mean(axis=0)
-    fig_heatmap = px.imshow(
-        mean_interaction,
-        x=trained_feature_names,
-        y=trained_feature_names,
-        color_continuous_scale="teal",
-        title="Mean Absolute SHAP Interaction Values"
-    )
-    st.plotly_chart(fig_heatmap, use_container_width=True)
+    if st.checkbox("Show Partial Dependence Plots", value=False):
+        with st.expander("ℹ️ What is this?"):
+            st.write(
+                "Partial dependence plots (PDPs) show how changing a single feature while "
+                "keeping others constant affects the predicted risk. They help interpret non-linear effects."
+            )
+        fig, axs = plt.subplots(1, 5, figsize=(20, 4))
+        for i, feat in enumerate(top_feats[:5]):
+            shap.dependence_plot(
+                feat, shap_values, X_features, interaction_index=None, ax=axs[i], show=False
+            )
+        st.pyplot(fig)
+
+    if st.checkbox("Show SHAP Interaction Heatmap", value=False):
+        with st.expander("ℹ️ What is this?"):
+            st.write(
+                "This heatmap shows the average magnitude of interaction effects between pairs of features. "
+                "Brighter colors mean stronger interactions, meaning those two features together have a "
+                "larger effect on predictions than individually."
+            )
+        mean_interaction = get_shap_interaction_mean(explainer, X_features)
+        fig_heatmap = px.imshow(
+            mean_interaction,
+            x=trained_feature_names,
+            y=trained_feature_names,
+            color_continuous_scale="teal",
+            title="Mean Absolute SHAP Interaction Values"
+        )
+        st.plotly_chart(fig_heatmap, use_container_width=True)
+
 
 # =========================
 # TAB 2: PATIENT EXPLORER
@@ -148,6 +182,7 @@ with tab2:
     similar_indices = np.argsort(distances)[1:num_similar + 1]
     similar_table = X.iloc[similar_indices][["Pseudonym", "RiskScore"]]
     st.dataframe(similar_table, use_container_width=True)
+
 
 
 
