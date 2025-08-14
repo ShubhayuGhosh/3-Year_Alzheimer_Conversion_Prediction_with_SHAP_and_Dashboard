@@ -107,24 +107,43 @@ with tab1:
             y="Feature",
             color="Feature Value",
             title="SHAP Beeswarm (Sampled)",
-            color_continuous_scale="teal",
+            color_continuous_scale="mint",
             render_mode="webgl"
         )
         fig_beeswarm.update_traces(marker=dict(size=5, opacity=0.7))
         st.plotly_chart(fig_beeswarm, use_container_width=True)
 
-    if st.checkbox("Show Partial Dependence Plots", value=False):
-        with st.expander("ℹ️ What is this?"):
-            st.write(
-                "Partial dependence plots (PDPs) show how changing a single feature while "
-                "keeping others constant affects the predicted risk. They help interpret non-linear effects."
-            )
-        fig, axs = plt.subplots(1, 5, figsize=(20, 4))
-        for i, feat in enumerate(top_feats[:5]):
-            shap.dependence_plot(
-                feat, shap_values, X_features, interaction_index=None, ax=axs[i], show=False
-            )
-        st.pyplot(fig)
+  if st.checkbox("Show Partial Dependence Plots", value=False):
+    with st.expander("ℹ️ What is this?"):
+        st.write(
+            "Partial dependence plots (PDPs) show how changing a single feature while "
+            "keeping others constant affects the predicted risk. They help interpret non-linear effects."
+        )
+    
+    # Create figure with black background
+    fig, axs = plt.subplots(1, 5, figsize=(20, 4))
+
+    # Set the background of the figure and axes to black
+    fig.patch.set_facecolor('black')
+    
+    # Loop over the axes and plot each PDP
+    for i, feat in enumerate(top_feats[:5]):
+        shap.dependence_plot(
+            feat, shap_values, X_features, interaction_index=None, ax=axs[i], show=False
+        )
+        
+        # Set the background of each subplot to black
+        axs[i].set_facecolor('black')
+
+        # Customize text colors (titles, labels, ticks)
+        axs[i].set_title(feat, color='white')  # Title in white
+        axs[i].tick_params(axis='both', colors='white')  # Ticks in white
+        axs[i].set_xlabel(feat, color='white')  # X-axis label in white
+        axs[i].set_ylabel("Predicted Risk", color='white')  # Y-axis label in white
+    
+    # Adjust spacing and show the plot
+    plt.tight_layout()
+    st.pyplot(fig)
 
     if st.checkbox("Show SHAP Interaction Heatmap", value=False):
         with st.expander("ℹ️ What is this?"):
@@ -182,6 +201,7 @@ with tab2:
     similar_indices = np.argsort(distances)[1:num_similar + 1]
     similar_table = X.iloc[similar_indices][["Pseudonym", "RiskScore"]]
     st.dataframe(similar_table, use_container_width=True)
+
 
 
 
