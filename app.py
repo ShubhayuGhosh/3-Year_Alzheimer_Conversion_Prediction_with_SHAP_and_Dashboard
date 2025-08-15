@@ -1,4 +1,4 @@
-# app.py
+=# app.py
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -111,14 +111,14 @@ st.pyplot(fig)
 
     # SHAP interaction heatmap
 st.subheader("🔥 SHAP Interaction Heatmap")
-    shap_interaction_values = explainer.shap_interaction_values(X_features)
-    mean_interaction = np.abs(shap_interaction_values).mean(axis=0)
-    fig_heatmap = px.imshow(
-        mean_interaction,
-        x=trained_feature_names,
-        y=trained_feature_names,
-        color_continuous_scale="teal",
-        title="Mean Absolute SHAP Interaction Values"
+shap_interaction_values = explainer.shap_interaction_values(X_features)
+mean_interaction = np.abs(shap_interaction_values).mean(axis=0)
+fig_heatmap = px.imshow(
+    mean_interaction,
+    x=trained_feature_names,
+    y=trained_feature_names,
+    color_continuous_scale="teal",
+    title="Mean Absolute SHAP Interaction Values"
     )
     st.plotly_chart(fig_heatmap, use_container_width=True)
 
