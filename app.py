@@ -110,7 +110,7 @@ st.pyplot(fig)
 
 
     # SHAP interaction heatmap
-    st.subheader("🔥 SHAP Interaction Heatmap")
+st.subheader("🔥 SHAP Interaction Heatmap")
     shap_interaction_values = explainer.shap_interaction_values(X_features)
     mean_interaction = np.abs(shap_interaction_values).mean(axis=0)
     fig_heatmap = px.imshow(
